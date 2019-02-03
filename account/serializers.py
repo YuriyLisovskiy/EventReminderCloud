@@ -9,6 +9,11 @@ class AccountSerializer(serializers.ModelSerializer):
 	username = serializers.CharField(required=True)
 	email = serializers.EmailField(required=True, allow_blank=False)
 
+	def validate(self, data):
+		if Account.objects.filter(email=data.get('email')).exists():
+			raise serializers.ValidationError('user already exists')
+		return data
+
 	def create(self, validated_data):
 		account = Account(**validated_data)
 		account.set_password(validated_data.get('password'))
@@ -17,7 +22,7 @@ class AccountSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Account
-		fields = ('username', 'email')
+		fields = ('username', 'email', 'password')
 
 
 class AccountEditSerializer(serializers.ModelSerializer):
@@ -32,4 +37,4 @@ class AccountEditSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Account
-		fields = ('username', 'email')
+		fields = ('username', 'email', 'password')
