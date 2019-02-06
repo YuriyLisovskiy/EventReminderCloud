@@ -40,8 +40,6 @@ class AccountDetailsView(APIView):
 		pk = request.POST.get('pk', None)
 		if pk is None:
 			return Response({'error': 'primary key is not provided'}, status=status.HTTP_400_BAD_REQUEST)
-		if 'password' not in request.POST:
-			return Response({'error': 'new password is not provided'}, status=status.HTTP_400_BAD_REQUEST)
 		account = Account.get_by_id(pk)
 		if account is None:
 			return Response(status=status.HTTP_404_NOT_FOUND)

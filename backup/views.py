@@ -23,9 +23,10 @@ class BackupDetailsView(APIView):
 	permission_classes = (permissions.IsAuthenticated,)
 
 	@staticmethod
-	def get(request, pk):
+	def get(request):
+		pk = request.POST.get('pk', None)
 		if pk is None:
-			return Response({'details': 'id is not provided'}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({'details': 'primary key is not provided'}, status=status.HTTP_400_BAD_REQUEST)
 		backup = Backup.get_by_id(pk)
 		if backup is None:
 			return Response(status=status.HTTP_404_NOT_FOUND)
@@ -33,9 +34,10 @@ class BackupDetailsView(APIView):
 		return Response(serializer.data, status=status.HTTP_200_OK)
 
 	@staticmethod
-	def post(request, pk):
+	def post(request):
+		pk = request.POST.get('pk', None)
 		if pk is None:
-			return Response({'details': 'id is not provided'}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({'details': 'primary key is not provided'}, status=status.HTTP_400_BAD_REQUEST)
 		backup = Backup.remove(pk)
 		if backup is None:
 			return Response(status=status.HTTP_404_NOT_FOUND)
