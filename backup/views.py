@@ -15,14 +15,12 @@ class BackupListView(ListCreateAPIView):
 	queryset = Backup.objects.all().order_by('-timestamp')
 	serializer_class = BackupSerializer
 	authentication_classes = (authentication.TokenAuthentication,)
-	# permission_classes = (permissions.IsAuthenticated,)
-	permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+	permission_classes = (permissions.IsAuthenticated,)
 
 
 class BackupDetailsView(APIView):
 	authentication_classes = (authentication.TokenAuthentication,)
-	# permission_classes = (permissions.IsAuthenticated,)
-	permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+	permission_classes = (permissions.IsAuthenticated,)
 
 	@staticmethod
 	def get(request, pk):

@@ -27,7 +27,7 @@ class AccountSerializer(serializers.ModelSerializer):
 
 class AccountEditSerializer(serializers.ModelSerializer):
 
-	id = serializers.IntegerField(read_only=True)
+	pk = serializers.IntegerField(read_only=True)
 	password = serializers.CharField(required=True, allow_blank=False, allow_null=False)
 
 	def update(self, instance, validated_data):

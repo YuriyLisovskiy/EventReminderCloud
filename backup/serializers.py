@@ -10,11 +10,6 @@ class BackupSerializer(serializers.ModelSerializer):
 	timestamp = serializers.DateTimeField(required=True, allow_null=False)
 	data = serializers.CharField(required=True, allow_blank=False, allow_null=False)
 
-	def create(self, validated_data):
-		backup = Backup(**validated_data)
-		backup.save()
-		return backup
-
 	class Meta:
 		model = Backup
 		fields = '__all__'
