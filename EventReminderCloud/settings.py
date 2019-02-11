@@ -49,8 +49,6 @@ REST_FRAMEWORK = {
 
 AUTH_USER_MODEL = 'account.Account'
 
-DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-
 ROOT_URLCONF = 'EventReminderCloud.urls'
 
 TEMPLATES = [
@@ -121,3 +119,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, './')
+STATICFILES_DIRS = (
+	os.path.join(BASE_DIR, "./"),
+)
+
+try:
+	from EventReminderCloud.local_settings import *
+except ImportError:
+	pass
