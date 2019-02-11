@@ -15,6 +15,8 @@ class AccountSerializer(serializers.ModelSerializer):
 	def validate(self, data):
 		if Account.objects.filter(email=data.get('email')).exists():
 			raise serializers.ValidationError('user already exists')
+		if Account.objects.filter(username=data.get('username')).exists():
+			raise serializers.ValidationError('user already exists')
 		errors = []
 		if 'first_name' not in data:
 			errors.append('first name is not provided')

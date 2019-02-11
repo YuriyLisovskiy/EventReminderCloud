@@ -5,9 +5,15 @@ from rest_framework import serializers
 
 class BackupSerializer(serializers.ModelSerializer):
 
-	hash_sum = serializers.CharField(max_length=128, required=True, allow_blank=False, allow_null=False)
-	timestamp = serializers.DateTimeField(required=True, allow_null=False)
-	data = serializers.CharField(required=True, allow_blank=False, allow_null=False)
+	digest = serializers.CharField(max_length=128, required=True, allow_blank=False, allow_null=False)
+	timestamp = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', required=True, allow_null=False)
+	backup = serializers.CharField(required=True, allow_blank=False, allow_null=False)
+
+	def validate(self, data):
+		digest = data.get('digest')
+		if Backup.get_by_pk(digest) is not None:
+			raise serializers.ValidationError('backup {} already exists'.format(digest))
+		return data
 
 	def create(self, validated_data):
 		backup = Backup(account=self.context['request'].user, **validated_data)
@@ -16,4 +22,12 @@ class BackupSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Backup
-		fields = ('hash_sum', 'timestamp', 'data')
+		fields = ('digest', 'timestamp', 'backup')
+
+
+class BackupListSerializer(serializers.ModelSerializer):
+
+	class Meta:
+		model = Backup
+		fields = ('digest', 'timestamp')
+

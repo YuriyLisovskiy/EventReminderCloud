@@ -5,14 +5,22 @@ from rest_framework import (
 )
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import CreateAPIView, ListAPIView
 
 from backup.models import Backup
-from backup.serializers import BackupSerializer
+from backup.serializers import BackupSerializer, BackupListSerializer
 
 
-class BackupListView(ListCreateAPIView):
-	queryset = Backup.objects.all().order_by('-timestamp')
+class BackupListView(ListAPIView):
+	serializer_class = BackupListSerializer
+	authentication_classes = (authentication.TokenAuthentication,)
+	permission_classes = (permissions.IsAuthenticated,)
+
+	def get_queryset(self):
+		return Backup.objects.filter(account=self.request.user).order_by('-timestamp')
+
+
+class BackupCreateView(CreateAPIView):
 	serializer_class = BackupSerializer
 	authentication_classes = (authentication.TokenAuthentication,)
 	permission_classes = (permissions.IsAuthenticated,)
@@ -23,22 +31,20 @@ class BackupDetailsView(APIView):
 	permission_classes = (permissions.IsAuthenticated,)
 
 	@staticmethod
-	def get(request):
-		pk = request.POST.get('pk', None)
-		if pk is None:
+	def get(request, pk_hash):
+		if pk_hash is None:
 			return Response({'details': 'primary key is not provided'}, status=status.HTTP_400_BAD_REQUEST)
-		backup = Backup.get_by_id(pk)
+		backup = Backup.get_by_pk(pk_hash)
 		if backup is None:
 			return Response(status=status.HTTP_404_NOT_FOUND)
 		serializer = BackupSerializer(backup)
 		return Response(serializer.data, status=status.HTTP_200_OK)
 
 	@staticmethod
-	def post(request):
-		pk = request.POST.get('pk', None)
-		if pk is None:
+	def post(request, pk_hash):
+		if pk_hash is None:
 			return Response({'details': 'primary key is not provided'}, status=status.HTTP_400_BAD_REQUEST)
-		backup = Backup.remove(pk)
+		backup = Backup.remove(pk_hash)
 		if backup is None:
 			return Response(status=status.HTTP_404_NOT_FOUND)
 		serializer = BackupSerializer(backup)

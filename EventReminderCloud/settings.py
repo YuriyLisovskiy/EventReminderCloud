@@ -49,6 +49,8 @@ REST_FRAMEWORK = {
 
 AUTH_USER_MODEL = 'account.Account'
 
+DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
 ROOT_URLCONF = 'EventReminderCloud.urls'
 
 TEMPLATES = [

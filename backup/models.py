@@ -8,12 +8,12 @@ from account.models import Account
 class Backup(models.Model):
 
 	account = models.ForeignKey(Account, on_delete=models.CASCADE)
-	hash_sum = models.CharField(max_length=128, blank=False, null=False)
+	digest = models.CharField(max_length=128, primary_key=True)
 	timestamp = models.DateTimeField(default=now)
-	data = models.TextField(blank=False, null=False)
+	backup = models.TextField(blank=False, null=False)
 
 	@staticmethod
-	def get_by_id(pk):
+	def get_by_pk(pk):
 		try:
 			return Backup.objects.get(pk=pk)
 		except ObjectDoesNotExist:
@@ -21,7 +21,7 @@ class Backup(models.Model):
 
 	@staticmethod
 	def remove(pk):
-		backup = Backup.get_by_id(pk)
+		backup = Backup.get_by_pk(pk)
 		if backup:
 			backup.delete()
 			return backup

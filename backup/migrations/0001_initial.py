@@ -2,7 +2,6 @@
 
 from django.conf import settings
 from django.db import migrations, models
-import django.db.models.deletion
 import django.utils.timezone
 
 
@@ -18,10 +17,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Backup',
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('hash_sum', models.CharField(max_length=128)),
-                ('timestamp', models.DateTimeField(default=django.utils.timezone.now)),
-                ('data', models.TextField()),
+                ('digest', models.CharField(max_length=128, primary_key=True)),
+                ('backup', models.TextField()),
                 ('account', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
         ),
