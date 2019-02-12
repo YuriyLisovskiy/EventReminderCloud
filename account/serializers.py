@@ -7,8 +7,6 @@ from rest_framework import serializers
 
 class AccountSerializer(serializers.ModelSerializer):
 
-	first_name = serializers.CharField(required=True, allow_blank=False, allow_null=False)
-	last_name = serializers.CharField(required=True, allow_blank=False, allow_null=False)
 	username = serializers.CharField(required=True, allow_blank=False, allow_null=False)
 	email = serializers.EmailField(required=True, allow_blank=False)
 
@@ -17,15 +15,6 @@ class AccountSerializer(serializers.ModelSerializer):
 			raise serializers.ValidationError('user already exists')
 		if Account.objects.filter(username=data.get('username')).exists():
 			raise serializers.ValidationError('user already exists')
-		errors = []
-		if 'first_name' not in data:
-			errors.append('first name is not provided')
-		if 'last_name' not in data:
-			errors.append('last name is not provided')
-		if 'username' not in data:
-			errors.append('username is not provided')
-		if len(errors) > 0:
-			raise serializers.ValidationError(errors)
 		return data
 
 	def create(self, validated_data):
@@ -49,7 +38,7 @@ class AccountSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Account
-		fields = ('username', 'email', 'first_name', 'last_name')
+		fields = ('username', 'email')
 
 
 class AccountEditSerializer(serializers.ModelSerializer):
