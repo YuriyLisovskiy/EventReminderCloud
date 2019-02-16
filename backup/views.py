@@ -40,6 +40,11 @@ class BackupDetailsView(APIView):
 		serializer = BackupSerializer(backup)
 		return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+class BackupDeleteView(APIView):
+	authentication_classes = (authentication.TokenAuthentication,)
+	permission_classes = (permissions.IsAuthenticated,)
+
 	@staticmethod
 	def post(request, pk_hash):
 		if pk_hash is None:
