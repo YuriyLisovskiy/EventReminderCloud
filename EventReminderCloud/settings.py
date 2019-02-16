@@ -124,6 +124,12 @@ STATICFILES_DIRS = (
 	os.path.join(BASE_DIR, "staticfiles"),
 )
 
+EMAIL_USE_TLS = True
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = 'set_in_local_settings'
+EMAIL_HOST_PASSWORD = 'set_in_local_settings'
+EMAIL_PORT = 587
+
 try:
 	from EventReminderCloud.local_settings import *
 except ImportError:

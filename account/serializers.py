@@ -1,5 +1,3 @@
-import random
-
 from account.models import Account
 
 from rest_framework import serializers
@@ -16,13 +14,8 @@ class AccountSerializer(serializers.ModelSerializer):
 		return data
 
 	def create(self, validated_data):
-		password = _rand_password()
-		validated_data['password'] = password
 		account = Account.create(**validated_data)
 		account.save()
-
-		print('\nUSERNAME: {}\nPASSWORD: {}\n\n'.format(account.username, password))
-
 		return account
 
 	def update(self, instance, validated_data):
@@ -33,12 +26,3 @@ class AccountSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Account
 		fields = ('username', 'email', 'password')
-
-
-def _rand_password():
-	chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-	password = random.choice(chars)
-	password_len = random.randrange(8, 13)
-	for _ in range(password_len - 1):
-		password += random.choice(chars)
-	return password

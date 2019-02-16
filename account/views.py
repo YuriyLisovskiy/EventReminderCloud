@@ -1,27 +1,121 @@
+import jwt
+import random
+from hashlib import sha256
+
 from rest_framework import (
 	status,
 	permissions,
 	authentication
 )
+from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.generics import CreateAPIView
 
-from account.serializers import AccountSerializer
 from account.models import Account
+from account.serializers import AccountSerializer
+from account.util import gen_password, token_is_valid
+
+from EventReminderCloud.settings import SECRET_KEY
 
 
-class AccountCreateAPIView(CreateAPIView):
-	serializer_class = AccountSerializer
+class AccountCreateAPIView(APIView):
 
-	# credentials_sender = lambda username, password: {'username': username, 'password': password}
+	def post(self, request):
+		password = gen_password()
+		data = request.data.copy()
+		data['password'] = password
+		serializer = AccountSerializer(data=data)
+		if serializer.is_valid():
+			serializer.save()
+			self._send_credentials(**data)
+			return Response({'detail': 'account has been created'}, status=status.HTTP_201_CREATED)
+		else:
+			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-	# def create(self, request, *args, **kwargs):
-	# 	serializer = self.serializer_class
+	@staticmethod
+	def _send_credentials(email, username, password):
 
-	# 	print(serializer.data)
+		# TODO: implement email sending
 
-	# 	data = serializer.data
+		print({
+			'email': email,
+			'username': username,
+			'password': password
+		})
+
+
+class AccountDeleteAPIView(APIView):
+	authentication_classes = (authentication.TokenAuthentication,)
+	permission_classes = (permissions.IsAuthenticated,)
+
+	@staticmethod
+	def post(request):
+
+		# TODO: setup task for deleting an account in 24 hours
+
+		account = Account.remove(request.data.get('username'))
+		if account is not None:
+			return Response({'detail': 'account hash been deleted'}, status=status.HTTP_201_CREATED)
+		return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class ResetPasswordAPIView(APIView):
+
+	def post(self, request):
+		password = gen_password()
+		data = request.data.copy()
+		data['password'] = password
+		account = Account.objects.filter(
+			Q(username=data.get('username', None)) | Q(email=data.get('email', None))
+		).first()
+		if account is not None:
+			serializer = AccountSerializer(instance=account, data=data)
+			if serializer.is_valid():
+				serializer.save()
+				self._send_credentials(**serializer.data)
+				return Response({'detail': 'account has been created'}, status=status.HTTP_201_CREATED)
+			else:
+				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+		return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
+
+	@staticmethod
+	def _send_credentials(email, username, password):
+
+		# TODO: implement email sending
+
+		print({'email': email, 'username': username, 'password': password})
+
+
+class SendTokenAPIView(APIView):
+	authentication_classes = (authentication.TokenAuthentication,)
+	permission_classes = (permissions.IsAuthenticated,)
+
+	def post(self, request):
+		account = Account.get_by_pk(request.user.username)
+		if account is None:
+			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
+		nonce = sha256(''.join([account.password, random.randrange(-999999, 999999)]).encode()).hexdigest()
+		payload = {
+			'email': account.email,
+			'username': account.username,
+			'password': account.password,
+			'nonce': nonce
+		}
+		jwt_token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+		self._send_confirmation(account.email, account.username, jwt_token)
+		request.session['{}_nonce'.format(account.email)] = nonce
+		return Response({'detail': 'confirmation email has been sent'}, status=status.HTTP_201_CREATED)
+
+	@staticmethod
+	def _send_confirmation(email, username, jwt_token):
+
+		# TODO: implement email sending
+
+		print({
+			'email': email,
+			'username': username,
+			'confirmation_token': jwt_token
+		})
 
 
 class AccountEditAPIView(APIView):
@@ -33,11 +127,24 @@ class AccountEditAPIView(APIView):
 		account = Account.get_by_pk(request.user.username)
 		if account is None:
 			return Response(status=status.HTTP_404_NOT_FOUND)
-		data = request.data.copy()
-		data['username'] = request.user.username
-		serializer = AccountSerializer(instance=account, data=data)
-		if serializer.is_valid():
-			serializer.save()
-			return Response(serializer.data, status=status.HTTP_200_OK)
+		if 'confirmation_token' not in request.data:
+			return Response({'detail': 'missing confirmation token'}, status=status.HTTP_400_BAD_REQUEST)
+		if token_is_valid(request, SECRET_KEY):
+			new_password = request.data.get('new_password', None)
+			new_password_confirm = request.data.get('new_password_confirm', None)
+			if new_password is None or new_password_confirm is None:
+				return Response({'detail': 'missing new password or its confirmation'}, status=status.HTTP_400_BAD_REQUEST)
+			if new_password != new_password_confirm:
+				return Response({'detail': 'password confirmation failed'}, status=status.HTTP_400_BAD_REQUEST)
+			data = request.data.copy()
+			data['username'] = request.user.username
+			data['password'] = new_password
+			serializer = AccountSerializer(instance=account, data=data)
+			if serializer.is_valid():
+				serializer.save()
+				del request.session['{}_confirmation_token'.format(account.email)]
+				return Response({'detail': 'password has been changed'}, status=status.HTTP_201_CREATED)
+			else:
+				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 		else:
-			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+			return Response({'detail': 'confirmation token is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
