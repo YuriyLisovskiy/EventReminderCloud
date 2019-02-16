@@ -17,7 +17,7 @@ class Account(AbstractUser):
 
 	@staticmethod
 	def create(username, email, password):
-		if username is None or email is None or password is None:
+		if username is None or username == '' or email is None or email == '' or password is None or password == '':
 			return None
 		account = Account()
 		account.username = username

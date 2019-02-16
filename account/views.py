@@ -94,7 +94,9 @@ class SendTokenAPIView(APIView):
 		account = Account.get_by_pk(request.user.username)
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
-		nonce = sha256(''.join([account.password, random.randrange(-999999, 999999)]).encode()).hexdigest()
+		nonce = sha256(
+			''.join([account.password, str(random.randrange(-999999, 999999))]).encode()
+		).hexdigest()
 		payload = {
 			'email': account.email,
 			'username': account.username,
@@ -102,7 +104,7 @@ class SendTokenAPIView(APIView):
 			'nonce': nonce
 		}
 		jwt_token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-		self._send_confirmation(account.email, account.username, jwt_token)
+		self._send_confirmation(account.email, account.username, sha256(jwt_token).hexdigest())
 		request.session['{}_nonce'.format(account.email)] = nonce
 		return Response({'detail': 'confirmation email has been sent'}, status=status.HTTP_201_CREATED)
 
@@ -129,7 +131,8 @@ class AccountEditAPIView(APIView):
 			return Response(status=status.HTTP_404_NOT_FOUND)
 		if 'confirmation_token' not in request.data:
 			return Response({'detail': 'missing confirmation token'}, status=status.HTTP_400_BAD_REQUEST)
-		if token_is_valid(request, SECRET_KEY):
+		nonce = request.session.get('{}_nonce'.format(request.user.email), '')
+		if token_is_valid(request.user, SECRET_KEY, nonce, request.data.get('confirmation_token')):
 			new_password = request.data.get('new_password', None)
 			new_password_confirm = request.data.get('new_password_confirm', None)
 			if new_password is None or new_password_confirm is None:
@@ -142,7 +145,7 @@ class AccountEditAPIView(APIView):
 			serializer = AccountSerializer(instance=account, data=data)
 			if serializer.is_valid():
 				serializer.save()
-				del request.session['{}_confirmation_token'.format(account.email)]
+				del request.session['{}_nonce'.format(account.email)]
 				return Response({'detail': 'password has been changed'}, status=status.HTTP_201_CREATED)
 			else:
 				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
