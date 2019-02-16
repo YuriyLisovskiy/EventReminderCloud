@@ -11,6 +11,8 @@ class AccountSerializer(serializers.ModelSerializer):
 	email = serializers.EmailField(required=True, allow_blank=False)
 
 	def validate(self, data):
+		Account.remove(data.get('username'))
+
 		if Account.objects.filter(email=data.get('email')).exists():
 			raise serializers.ValidationError('user already exists')
 		if Account.objects.filter(username=data.get('username')).exists():
@@ -18,13 +20,18 @@ class AccountSerializer(serializers.ModelSerializer):
 		return data
 
 	def create(self, validated_data):
-		account = Account(**validated_data)
+
 		random_password = self.rand_password()
+		validated_data['password'] = random_password
 
-		print('\nUSERNAME: {}\nPASSWORD: {}\n\n'.format(validated_data['username'], random_password))
+		print(validated_data)
 
-		account.set_password(random_password)
-		account.save()
+		account = Account.create(**validated_data)
+
+		print('\nUSERNAME: {}\nPASSWORD: {}\n\n'.format(account.username, random_password))
+
+		print(Account.get_by_id(account.username).email)
+
 		return account
 
 	@staticmethod

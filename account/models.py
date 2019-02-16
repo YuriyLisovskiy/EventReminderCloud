@@ -1,8 +1,11 @@
+from django.db.models import CharField
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ObjectDoesNotExist
 
 
 class Account(AbstractUser):
+
+	username = CharField(max_length=100, primary_key=True)
 
 	@staticmethod
 	def get_by_id(pk):
