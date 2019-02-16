@@ -1,8 +1,8 @@
 from django.conf.urls import url
 
-from account.views import AccountListView, AccountDetailsView
+from account.views import AccountCreateAPIView, AccountEditAPIView
 
 urlpatterns = [
-	url(r'^$', AccountListView.as_view()),
-	url(r'^edit/?$', AccountDetailsView.as_view())
+	url(r'^create/?$', AccountCreateAPIView.as_view()),
+	url(r'^edit/?$', AccountEditAPIView.as_view())
 ]
