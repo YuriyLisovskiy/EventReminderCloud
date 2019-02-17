@@ -1,5 +1,4 @@
 from django.db import models
-from django.utils.timezone import now
 from django.core.exceptions import ObjectDoesNotExist
 
 from account.models import Account
@@ -9,7 +8,7 @@ class Backup(models.Model):
 
 	account = models.ForeignKey(Account, on_delete=models.CASCADE)
 	digest = models.CharField(max_length=128, primary_key=True)
-	timestamp = models.DateTimeField(default=now)
+	timestamp = models.DateTimeField(auto_now=True)
 	backup = models.TextField(blank=False, null=False)
 
 	@staticmethod

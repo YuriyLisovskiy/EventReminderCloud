@@ -52,5 +52,4 @@ class BackupDeleteView(APIView):
 		backup = Backup.remove(pk_hash)
 		if backup is None:
 			return Response(status=status.HTTP_404_NOT_FOUND)
-		serializer = BackupSerializer(backup)
-		return Response(serializer.data, status=status.HTTP_201_CREATED)
+		return Response({'detail': 'backup {} has been deleted'.format(backup.digest)}, status=status.HTTP_201_CREATED)
