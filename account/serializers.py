@@ -13,6 +13,10 @@ class AccountSerializer(serializers.ModelSerializer):
 				raise serializers.ValidationError('user already exists')
 			if Account.objects.filter(username=data.get('username')).exists():
 				raise serializers.ValidationError('user already exists')
+		max_backups = data.get('max_backups', None)
+		if max_backups is not None:
+			if not isinstance(max_backups, int):
+				raise serializers.ValidationError('max backups must be an integer value')
 		return data
 
 	def create(self, validated_data):
@@ -27,4 +31,4 @@ class AccountSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Account
-		fields = ('username', 'email', 'password')
+		fields = ('username', 'email', 'password', 'lang', 'max_backups')

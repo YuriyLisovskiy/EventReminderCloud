@@ -133,3 +133,63 @@ class BackupDeleteViewTestCase(TestCase):
 	def test_get_404_not_found(self):
 		response = self.client.post('/api/v1/backups/delete/{}'.format('f' + self.backup.digest[1:]), **self.auth_token_header)
 		self.assertEqual(response.status_code, 404)
+
+
+class BackupCreateViewTestCase(TestCase):
+
+	def setUp(self):
+		self.account = Account.create(**{
+			'username': 'test_user',
+			'email': 'test@gmail.com',
+			'password': 'test_password'
+		})
+		self.account.save()
+		response = self.client.post('/api/v1/auth/login/', data={
+			'username': 'test_user',
+			'password': 'test_password'
+		})
+		self.auth_token_header = {
+			'HTTP_AUTHORIZATION': 'Token {}'.format(response.json().get('key'))
+		}
+		for i in range(4):
+			Backup(**{
+				'account': self.account,
+				'digest': 'some_digest_{}'.format(i),
+				'timestamp': now(),
+				'backup': 'encoded backup data {}'.format(i)
+			}).save()
+
+	def test_post_201_created(self):
+		response = self.client.post('/api/v1/backups/create', data={
+			'account': self.account,
+			'digest': 'some_digest_4',
+			'timestamp': now(),
+			'backup': 'encoded backup data 4'
+		}, **self.auth_token_header)
+		self.assertEqual(response.status_code, 201)
+
+	def test_post_201_created_max_backups_reached(self):
+		Backup(**{
+			'account': self.account,
+			'digest': 'some_digest_4',
+			'timestamp': now(),
+			'backup': 'encoded backup data 4'
+		}).save()
+		self.assertIsNotNone(Backup.get_by_pk('some_digest_0'))
+		response = self.client.post('/api/v1/backups/create', data={
+			'account': self.account,
+			'digest': 'some_digest',
+			'timestamp': now(),
+			'backup': 'encoded backup data'
+		}, **self.auth_token_header)
+		self.assertEqual(response.status_code, 201)
+		self.assertIsNone(Backup.get_by_pk('some_digest_0'))
+
+	def test_post_400_(self):
+		response = self.client.post('/api/v1/backups/create', data={
+			'account': self.account,
+			'digest': 'some_digest_0',
+			'timestamp': now(),
+			'backup': 'encoded backup data'
+		}, **self.auth_token_header)
+		self.assertEqual(response.status_code, 400)

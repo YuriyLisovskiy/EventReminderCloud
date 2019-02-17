@@ -42,17 +42,29 @@ class AccountSerializerTestCase(TestCase):
 		}
 		self.assertRaises(serializers.ValidationError, self.serializer.validate, data=data)
 
+	def test_validate_raises_max_backups_is_non_number(self):
+		data = {
+			'username': 'test_username1',
+			'email': 'test1@gmail.com',
+			'password': 'test_password1',
+			'max_backups': '7'
+		}
+		serializer = AccountSerializer(data=data)
+		self.assertRaises(serializers.ValidationError, serializer.validate, *(data,))
+
 	def test_create(self):
 		data = {
 			'username': 'test_username1',
 			'email': 'test1@gmail.com',
-			'password': 'test_password1'
+			'password': 'test_password1',
+			'max_backups': 7
 		}
 		serializer = AccountSerializer(data=data)
 		serializer.create(data)
 		account = Account.objects.get(pk='test_username1')
 		self.assertEqual(account.email, data['email'])
 		self.assertEqual(account.username, data['username'])
+		self.assertEqual(account.max_backups, data['max_backups'])
 		self.assertTrue(account.check_password('test_password1'))
 
 	def test_update(self):
