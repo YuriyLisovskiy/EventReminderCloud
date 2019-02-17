@@ -13,7 +13,9 @@ SECRET_KEY = '%h2-b))f$1f8&ur@1y05&@0%s=37s^&vl4rlof1g8yqohlry5k'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+HOST = '127.0.0.1'
+
+ALLOWED_HOSTS = [HOST]
 
 
 # Application definition
@@ -126,9 +128,10 @@ STATICFILES_DIRS = (
 
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_USER = 'set_in_local_settings'
-EMAIL_PASSWORD = 'set_in_local_settings'
+EMAIL_HOST_USER = 'set_in_local_settings'
+EMAIL_HOST_PASSWORD = 'set_in_local_settings'
 EMAIL_PORT = 587    # 465
+# EMAIL_USE_SSL = True
 
 try:
 	from EventReminderCloud.local_settings import *

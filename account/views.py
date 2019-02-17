@@ -1,5 +1,6 @@
 import jwt
 import random
+import threading
 from hashlib import sha256
 
 from rest_framework import (
@@ -7,7 +8,6 @@ from rest_framework import (
 	permissions,
 	authentication
 )
-from django.db.models import Q
 from django.template.loader import render_to_string
 
 from rest_framework.views import APIView
@@ -15,9 +15,9 @@ from rest_framework.response import Response
 
 from account.models import Account
 from account.serializers import AccountSerializer
-from account.util import gen_password, token_is_valid, compose_email, send_html_email
+from account.util import gen_password, token_is_valid, send_html_email
 
-from EventReminderCloud.settings import SECRET_KEY, BASE_DIR
+from EventReminderCloud.settings import SECRET_KEY, BASE_DIR, EMAIL_HOST_USER, SITE
 
 
 class AccountCreateAPIView(APIView):
@@ -30,19 +30,23 @@ class AccountCreateAPIView(APIView):
 		if serializer.is_valid():
 			serializer.save()
 			self._send_credentials(**data)
+
+			threading.Thread(target=self._send_credentials, kwargs=data).start()
+
 			return Response({'detail': 'account has been created'}, status=status.HTTP_201_CREATED)
 		else:
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 	@staticmethod
 	def _send_credentials(email, username, password):
-
-		# TODO: remove print in production
-		print({
-			'email': email,
+		html = render_to_string('credentials_email.html', {
 			'username': username,
 			'password': password
 		})
+		plain = open(
+			'{}/templates/credentials_email.txt'.format(BASE_DIR)
+		).read().replace('{{ username }}', username).replace('{{ password }}', password)
+		send_html_email('Registration of Event Reminder account', html, plain, [email], EMAIL_HOST_USER)
 
 
 class AccountDeleteAPIView(APIView):
@@ -79,25 +83,25 @@ class SendTokenAPIView(APIView):
 			'nonce': nonce
 		}
 		jwt_token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-		self._send_confirmation(account.email, account.username, sha256(jwt_token).hexdigest())
+
+		threading.Thread(target=self._send_confirmation, args=(
+			account.email, account.username, sha256(jwt_token).hexdigest()
+		)).start()
+
 		request.session['{}_nonce'.format(account.email)] = nonce
 		return Response({'detail': 'confirmation email has been sent'}, status=status.HTTP_201_CREATED)
 
 	@staticmethod
 	def _send_confirmation(email, username, jwt_token):
-		html = render_to_string('reset_password.html', {
-			'token': jwt_token
+		html = render_to_string('reset_password_email.html', {
+			'token': jwt_token,
+			'site': SITE,
+			'username': username
 		})
-		plain = open('{}/templates/reset_password.txt'.format(BASE_DIR)).read().replace('{{ token }}', jwt_token)
-		message = compose_email(email, 'Reset your Event Reminder password', html, plain)
-		send_html_email(email, message)
-
-		# TODO: remove print in production
-		print({
-			'email': email,
-			'username': username,
-			'confirmation_token': jwt_token
-		})
+		plain = open(
+			'{}/templates/reset_password_email.txt'.format(BASE_DIR)
+		).read().replace('{{ token }}', jwt_token).replace('{{ username }}', username)
+		send_html_email('Reset your Event Reminder password', html, plain, [email], EMAIL_HOST_USER)
 
 
 class ResetPasswordAPIView(APIView):
