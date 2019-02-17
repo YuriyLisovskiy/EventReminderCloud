@@ -1,4 +1,6 @@
 import os
+import sys
+
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,7 +15,9 @@ SECRET_KEY = '%h2-b))f$1f8&ur@1y05&@0%s=37s^&vl4rlof1g8yqohlry5k'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+HOST = '127.0.0.1'
+
+ALLOWED_HOSTS = [HOST]
 
 
 # Application definition
@@ -113,6 +117,21 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+
+# Detects if server is running in testing mode
+
+TESTING = sys.argv[1:2] == ['test']
+
+if TESTING:
+	EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+
+
+EMAIL_USE_TLS = True
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = 'set_in_local_settings'
+EMAIL_HOST_PASSWORD = 'set_in_local_settings'
+EMAIL_PORT = 587
 
 
 # Static files (CSS, JavaScript, Images)

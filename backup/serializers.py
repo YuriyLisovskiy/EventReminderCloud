@@ -30,4 +30,3 @@ class BackupListSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Backup
 		fields = ('digest', 'timestamp')
-
