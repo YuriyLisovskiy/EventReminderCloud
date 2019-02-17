@@ -7,6 +7,8 @@ class AccountSerializer(serializers.ModelSerializer):
 
 	def validate(self, data):
 		if self.instance is None:
+			if 'email' not in data:
+				raise serializers.ValidationError('email is not provided')
 			if Account.objects.filter(email=data.get('email')).exists():
 				raise serializers.ValidationError('user already exists')
 			if Account.objects.filter(username=data.get('username')).exists():

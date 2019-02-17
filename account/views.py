@@ -29,9 +29,9 @@ class AccountCreateAPIView(APIView):
 		serializer = AccountSerializer(data=data)
 		if serializer.is_valid():
 			serializer.save()
-			self._send_credentials(**data)
+			threading.Thread(target=self._send_credentials, kwargs=data.dict()).start()
 
-			threading.Thread(target=self._send_credentials, kwargs=data).start()
+			# TODO: add task which deletes account in 24 hours if it is inactive
 
 			return Response({'detail': 'account has been created'}, status=status.HTTP_201_CREATED)
 		else:
@@ -55,13 +55,8 @@ class AccountDeleteAPIView(APIView):
 
 	@staticmethod
 	def post(request):
-
-		# TODO: setup task for deleting an account in 24 hours
-
-		account = Account.remove(request.data.get('username'))
-		if account is not None:
-			return Response({'detail': 'account hash been deleted'}, status=status.HTTP_201_CREATED)
-		return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
+		Account.remove(request.user.username)
+		return Response({'detail': 'account hash been deleted'}, status=status.HTTP_201_CREATED)
 
 
 class SendTokenAPIView(APIView):
@@ -92,7 +87,7 @@ class SendTokenAPIView(APIView):
 		return Response({'detail': 'confirmation email has been sent'}, status=status.HTTP_201_CREATED)
 
 	@staticmethod
-	def _send_confirmation(email, username, jwt_token):
+	def _send_confirmation(email, username, jwt_token, sender=EMAIL_HOST_USER):
 		html = render_to_string('reset_password_email.html', {
 			'token': jwt_token,
 			'site': SITE,
@@ -101,7 +96,7 @@ class SendTokenAPIView(APIView):
 		plain = open(
 			'{}/templates/reset_password_email.txt'.format(BASE_DIR)
 		).read().replace('{{ token }}', jwt_token).replace('{{ username }}', username)
-		send_email('Reset your Event Reminder password', html, plain, [email], EMAIL_HOST_USER)
+		send_email('Reset your Event Reminder password', html, plain, [email], sender)
 
 
 class ResetPasswordAPIView(APIView):
@@ -113,7 +108,7 @@ class ResetPasswordAPIView(APIView):
 			return Response({'detail': 'username was not provided'}, status=status.HTTP_400_BAD_REQUEST)
 		account = Account.get_by_pk(username)
 		if account is None:
-			return Response(status=status.HTTP_404_NOT_FOUND)
+			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
 		if 'confirmation_token' not in request.data:
 			return Response({'detail': 'missing confirmation token'}, status=status.HTTP_400_BAD_REQUEST)
 		nonce = request.session.get('{}_nonce'.format(account.email), '')
