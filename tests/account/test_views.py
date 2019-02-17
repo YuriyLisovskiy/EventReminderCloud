@@ -76,7 +76,7 @@ class AccountCreateAPIViewTestCase(TestCase):
 			'email': 'test.user@gmail.com'
 		})
 		self.assertEqual(response.status_code, 400)
-		self.assertTrue('username' in response.json())
+		self.assertTrue('non_field_errors' in response.json())
 
 	def test_post_400_bad_email_is_not_provided(self):
 		response = self.client.post('/api/v1/accounts/create', {
@@ -191,3 +191,72 @@ class ResetPasswordAPIViewTestCase(TestCase):
 		})
 		self.assertEqual(response.status_code, 400)
 		self.assertTrue('detail' in response.json())
+
+
+class AccountEditAPIViewTestCase(TestCase):
+
+	def setUp(self):
+		Account.create(**{
+			'username': 'test_user',
+			'email': 'test.user@gmail.com',
+			'password': 'test_password'
+		}).save()
+		response = self.client.post('/api/v1/auth/login/', data={
+			'username': 'test_user',
+			'password': 'test_password'
+		})
+		self.header = {'HTTP_AUTHORIZATION': 'Token {}'.format(response.json().get('key'))}
+
+	def test_post_201_created(self):
+		account = Account.get_by_pk('test_user')
+		self.assertEqual(account.lang, 'en')
+		self.assertEqual(account.max_backups, 5)
+		response = self.client.post('/api/v1/accounts/edit', data={
+			'max_backups': 7,
+			'lang': 'ua'
+		}, **self.header)
+		self.assertEqual(response.status_code, 201)
+		self.assertTrue('detail' in response.json())
+		account = Account.get_by_pk('test_user')
+		self.assertEqual(account.max_backups, 7)
+		self.assertEqual(account.lang, 'ua')
+
+	def test_post_400_max_backups_is_non_number(self):
+		account = Account.get_by_pk('test_user')
+		self.assertEqual(account.lang, 'en')
+		self.assertEqual(account.max_backups, 5)
+		response = self.client.post('/api/v1/accounts/edit', data={
+			'max_backups': 'f',
+			'lang': 'ua'
+		}, **self.header)
+		self.assertEqual(response.status_code, 400)
+
+
+class AccountDetailsAPIViewTestCase(TestCase):
+
+	def setUp(self):
+		self.account = Account.create(**{
+			'username': 'test_user',
+			'email': 'test.user@gmail.com',
+			'password': 'test_password'
+		})
+		self.account.save()
+		response = self.client.post('/api/v1/auth/login/', data={
+			'username': 'test_user',
+			'password': 'test_password'
+		})
+		self.header = {'HTTP_AUTHORIZATION': 'Token {}'.format(response.json().get('key'))}
+
+	def test_get_200_ok(self):
+		response = self.client.get('/api/v1/accounts/user', **self.header)
+		self.assertEqual(response.status_code, 200)
+		content = response.json()
+		self.assertEqual(self.account.username, content['username'])
+		self.assertEqual(self.account.email, content['email'])
+		self.assertEqual(self.account.max_backups, content['max_backups'])
+		self.assertEqual(self.account.lang, content['lang'])
+		self.assertEqual(self.account.password, content['password'])
+
+	def test_get_401_unauthorized(self):
+		response = self.client.get('/api/v1/accounts/user')
+		self.assertEqual(response.status_code, 401)
