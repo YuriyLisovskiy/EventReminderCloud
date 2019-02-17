@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>{% block title %}{% endblock %}</title>
+	{% load static %}
+	<link rel="shortcut icon" href="{% static 'images/icon.png' %}" type="image/png">
+	<link rel="stylesheet" type="text/css" href="{% static 'css/base.css' %}"/>
+	{% block head %}{% endblock %}
+</head>
+<body>
+<div class="root">
+	<div class="title">
+		<img class="title-img" src="{% static 'images/icon.png' %}" alt="Event Reminder Logo"/>
+		<h2 class="title-header">Event Reminder</h2>
+	</div>
+	{% block body %}{% endblock %}
+	<p>Event Reminder Developer<br>
+		<a href="https://github.com/YuriyLisovskiy">https://github.com/YuriyLisovskiy</a>
+	</p>
+</div>
+</body>
+</html>

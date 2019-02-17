@@ -8,14 +8,16 @@ from rest_framework import (
 	authentication
 )
 from django.db.models import Q
+from django.template.loader import render_to_string
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from account.models import Account
 from account.serializers import AccountSerializer
-from account.util import gen_password, token_is_valid
+from account.util import gen_password, token_is_valid, compose_email, send_html_email
 
-from EventReminderCloud.settings import SECRET_KEY
+from EventReminderCloud.settings import SECRET_KEY, BASE_DIR
 
 
 class AccountCreateAPIView(APIView):
@@ -35,8 +37,7 @@ class AccountCreateAPIView(APIView):
 	@staticmethod
 	def _send_credentials(email, username, password):
 
-		# TODO: implement email sending
-
+		# TODO: remove print in production
 		print({
 			'email': email,
 			'username': username,
@@ -59,39 +60,13 @@ class AccountDeleteAPIView(APIView):
 		return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
-class ResetPasswordAPIView(APIView):
-
-	def post(self, request):
-		password = gen_password()
-		data = request.data.copy()
-		data['password'] = password
-		account = Account.objects.filter(
-			Q(username=data.get('username', None)) | Q(email=data.get('email', None))
-		).first()
-		if account is not None:
-			serializer = AccountSerializer(instance=account, data=data)
-			if serializer.is_valid():
-				serializer.save()
-				self._send_credentials(**serializer.data)
-				return Response({'detail': 'account has been created'}, status=status.HTTP_201_CREATED)
-			else:
-				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-		return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
-
-	@staticmethod
-	def _send_credentials(email, username, password):
-
-		# TODO: implement email sending
-
-		print({'email': email, 'username': username, 'password': password})
-
-
 class SendTokenAPIView(APIView):
-	authentication_classes = (authentication.TokenAuthentication,)
-	permission_classes = (permissions.IsAuthenticated,)
 
 	def post(self, request):
-		account = Account.get_by_pk(request.user.username)
+		username = request.data.get('username')
+		if username is None:
+			return Response({'detail': 'username was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+		account = Account.get_by_pk(username)
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
 		nonce = sha256(
@@ -110,9 +85,14 @@ class SendTokenAPIView(APIView):
 
 	@staticmethod
 	def _send_confirmation(email, username, jwt_token):
+		html = render_to_string('reset_password.html', {
+			'token': jwt_token
+		})
+		plain = open('{}/templates/reset_password.txt'.format(BASE_DIR)).read().replace('{{ token }}', jwt_token)
+		message = compose_email(email, 'Reset your Event Reminder password', html, plain)
+		send_html_email(email, message)
 
-		# TODO: implement email sending
-
+		# TODO: remove print in production
 		print({
 			'email': email,
 			'username': username,
@@ -120,19 +100,20 @@ class SendTokenAPIView(APIView):
 		})
 
 
-class AccountEditAPIView(APIView):
-	authentication_classes = (authentication.TokenAuthentication,)
-	permission_classes = (permissions.IsAuthenticated,)
+class ResetPasswordAPIView(APIView):
 
 	@staticmethod
 	def post(request):
-		account = Account.get_by_pk(request.user.username)
+		username = request.data.get('username')
+		if username is None:
+			return Response({'detail': 'username was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+		account = Account.get_by_pk(username)
 		if account is None:
 			return Response(status=status.HTTP_404_NOT_FOUND)
 		if 'confirmation_token' not in request.data:
 			return Response({'detail': 'missing confirmation token'}, status=status.HTTP_400_BAD_REQUEST)
-		nonce = request.session.get('{}_nonce'.format(request.user.email), '')
-		if token_is_valid(request.user, SECRET_KEY, nonce, request.data.get('confirmation_token')):
+		nonce = request.session.get('{}_nonce'.format(account.email), '')
+		if token_is_valid(account, SECRET_KEY, nonce, request.data.get('confirmation_token', '')):
 			new_password = request.data.get('new_password', None)
 			new_password_confirm = request.data.get('new_password_confirm', None)
 			if new_password is None or new_password_confirm is None:
@@ -140,7 +121,7 @@ class AccountEditAPIView(APIView):
 			if new_password != new_password_confirm:
 				return Response({'detail': 'password confirmation failed'}, status=status.HTTP_400_BAD_REQUEST)
 			data = request.data.copy()
-			data['username'] = request.user.username
+			data['username'] = account.username
 			data['password'] = new_password
 			serializer = AccountSerializer(instance=account, data=data)
 			if serializer.is_valid():
