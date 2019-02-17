@@ -15,7 +15,7 @@ from rest_framework.response import Response
 
 from account.models import Account
 from account.serializers import AccountSerializer
-from account.util import gen_password, token_is_valid, send_html_email
+from account.util import gen_password, token_is_valid, send_email
 
 from EventReminderCloud.settings import SECRET_KEY, BASE_DIR, EMAIL_HOST_USER, SITE
 
@@ -46,7 +46,7 @@ class AccountCreateAPIView(APIView):
 		plain = open(
 			'{}/templates/credentials_email.txt'.format(BASE_DIR)
 		).read().replace('{{ username }}', username).replace('{{ password }}', password)
-		send_html_email('Registration of Event Reminder account', html, plain, [email], EMAIL_HOST_USER)
+		send_email('Registration of Event Reminder account', html, plain, [email], EMAIL_HOST_USER)
 
 
 class AccountDeleteAPIView(APIView):
@@ -101,7 +101,7 @@ class SendTokenAPIView(APIView):
 		plain = open(
 			'{}/templates/reset_password_email.txt'.format(BASE_DIR)
 		).read().replace('{{ token }}', jwt_token).replace('{{ username }}', username)
-		send_html_email('Reset your Event Reminder password', html, plain, [email], EMAIL_HOST_USER)
+		send_email('Reset your Event Reminder password', html, plain, [email], EMAIL_HOST_USER)
 
 
 class ResetPasswordAPIView(APIView):

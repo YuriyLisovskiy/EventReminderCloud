@@ -1,6 +1,7 @@
+from django.core import mail
 from django.test import TestCase
 
-from account.util import token_is_valid, gen_password
+from account.util import token_is_valid, gen_password, send_email
 
 
 class UtilTestCase(TestCase):
@@ -25,6 +26,14 @@ class UtilTestCase(TestCase):
 	def test_token_is_valid_false(self):
 		token = '01cb2b432c2568227d140307f9d621a5ab8f889af51592303d8e9b302c06e2a0'
 		self.assertFalse(token_is_valid(self.user, self.secret_key, self.nonce, token))
+
+	def test_send_email(self):
+		send_email('Test subject', '<p>Test body .html</p>', 'Test body .txt', ['to@gmail.com'], 'from@gmail.com')
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].subject, 'Test subject')
+		self.assertEqual(mail.outbox[0].from_email, 'from@gmail.com')
+		self.assertListEqual(mail.outbox[0].to, ['to@gmail.com'])
+		self.assertEqual(mail.outbox[0].body, 'Test body .txt')
 
 	class FakeUser:
 

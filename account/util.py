@@ -3,6 +3,7 @@ import random
 from hashlib import sha256
 
 from django.core.mail import EmailMultiAlternatives
+from EventReminderCloud.settings import TESTING
 
 
 def gen_password(len_from=8, len_to=24):
@@ -21,7 +22,7 @@ def token_is_valid(account, secret_key, nonce, token):
 	return sha256(jwt.encode(payload, secret_key, algorithm='HS256')).hexdigest() == token
 
 
-def send_html_email(subject, html, plain, receivers, sender):
+def send_email(subject, html, plain, receivers, sender):
 	msg = EmailMultiAlternatives(subject, plain, sender, receivers)
 	msg.attach_alternative(html, 'text/html')
-	return msg.send()
+	return msg.send(fail_silently=TESTING)
