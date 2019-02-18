@@ -1,6 +1,8 @@
-from django.core.management.base import BaseCommand
-
 from account.models import Account
+
+from datetime import datetime, timezone, timedelta
+
+from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
@@ -8,5 +10,8 @@ class Command(BaseCommand):
 
 	def handle(self, *args, **options):
 		unactivated_users = Account.objects.filter(is_activated=False)
+		now = datetime.now(tz=timezone.utc)
+		expire_time = timedelta(1)
 		for user in unactivated_users:
-			print(user.date_joined)
+			if (now - user.date_joined) >= expire_time:
+				Account.remove(user.username)
