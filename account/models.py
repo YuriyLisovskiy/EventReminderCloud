@@ -38,7 +38,7 @@ class Account(AbstractUser):
 				account.max_backups = max_backups
 		return account
 
-	def edit(self, password=None, lang=None, max_backups=None):
+	def edit(self, password=None, lang=None, max_backups=None, is_activated=None):
 		if password is not None:
 			self.set_password(raw_password=password)
 		if lang is not None:
@@ -46,6 +46,8 @@ class Account(AbstractUser):
 		if max_backups is not None:
 			if self.MIN_BACKUPS_VAL <= max_backups <= self.MAX_BACKUPS_VAL:
 				self.max_backups = max_backups
+		if is_activated is not None:
+			self.is_activated = is_activated
 		return self
 
 	@staticmethod

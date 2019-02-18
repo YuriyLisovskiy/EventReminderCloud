@@ -15,7 +15,7 @@ class BackupListViewTestCase(TestCase):
 			'password': 'test_password'
 		})
 		account.save()
-		response = self.client.post('/api/v1/auth/login/', data={
+		response = self.client.post('/api/v1/login', data={
 			'username': 'test_user',
 			'password': 'test_password'
 		})
@@ -59,8 +59,9 @@ class BackupListViewTestCase(TestCase):
 		actual_list = response.json()
 		for i in range(len(actual_list)):
 			self.assertEqual(actual_list[i]['digest'], self.expected_list[i]['digest'])
-			self.assertEqual(actual_list[i]['timestamp'],
-			                 self.expected_list[i]['timestamp'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'))
+			self.assertEqual(
+				actual_list[i]['timestamp'], self.expected_list[i]['timestamp'].strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+			)
 
 
 class BackupDetailsViewTestCase(TestCase):
@@ -73,7 +74,7 @@ class BackupDetailsViewTestCase(TestCase):
 			'password': 'test_password'
 		})
 		account.save()
-		response = self.client.post('/api/v1/auth/login/', data={
+		response = self.client.post('/api/v1/login', data={
 			'username': 'test_user',
 			'password': 'test_password'
 		})
@@ -111,7 +112,7 @@ class BackupDeleteViewTestCase(TestCase):
 			'password': 'test_password'
 		})
 		account.save()
-		response = self.client.post('/api/v1/auth/login/', data={
+		response = self.client.post('/api/v1/login', data={
 			'username': 'test_user',
 			'password': 'test_password'
 		})
@@ -144,7 +145,7 @@ class BackupCreateViewTestCase(TestCase):
 			'password': 'test_password'
 		})
 		self.account.save()
-		response = self.client.post('/api/v1/auth/login/', data={
+		response = self.client.post('/api/v1/login', data={
 			'username': 'test_user',
 			'password': 'test_password'
 		})

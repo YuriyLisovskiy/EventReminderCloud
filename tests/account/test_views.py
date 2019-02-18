@@ -45,7 +45,7 @@ class AccountDeleteAPIViewTestCase(TestCase):
 		}).save()
 
 	def test_post_201_created(self):
-		response = self.client.post('/api/v1/auth/login/', data={
+		response = self.client.post('/api/v1/login', data={
 			'username': 'test_user',
 			'password': 'test_password'
 		})
@@ -201,7 +201,7 @@ class AccountEditAPIViewTestCase(TestCase):
 			'email': 'test.user@gmail.com',
 			'password': 'test_password'
 		}).save()
-		response = self.client.post('/api/v1/auth/login/', data={
+		response = self.client.post('/api/v1/login', data={
 			'username': 'test_user',
 			'password': 'test_password'
 		})
@@ -241,7 +241,7 @@ class AccountDetailsAPIViewTestCase(TestCase):
 			'password': 'test_password'
 		})
 		self.account.save()
-		response = self.client.post('/api/v1/auth/login/', data={
+		response = self.client.post('/api/v1/login', data={
 			'username': 'test_user',
 			'password': 'test_password'
 		})
@@ -260,3 +260,22 @@ class AccountDetailsAPIViewTestCase(TestCase):
 	def test_get_401_unauthorized(self):
 		response = self.client.get('/api/v1/accounts/user')
 		self.assertEqual(response.status_code, 401)
+
+
+class AccountActivateViaLoginViewTestCase(TestCase):
+
+	def setUp(self):
+		Account.create(**{
+			'username': 'test_u_name',
+			'email': 'test@gmail.com',
+			'password': 'test_password'
+		}).save()
+
+	def test_activate_via_login(self):
+		self.assertFalse(Account.get_by_pk('test_u_name').is_activated)
+		response = self.client.post('/api/v1/login', {
+			'email': 'test@gmail.com',
+			'password': 'test_password'
+		})
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(Account.get_by_pk('test_u_name').is_activated)

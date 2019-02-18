@@ -17,7 +17,23 @@ from account.models import Account
 from account.serializers import AccountSerializer
 from account.util import gen_password, token_is_valid, send_email
 
-from EventReminderCloud.settings import SECRET_KEY, BASE_DIR, EMAIL_HOST_USER, SITE
+# from EventReminderCloud.settings import SECRET_KEY, BASE_DIR, EMAIL_HOST_USER, SITE
+
+from django.contrib.auth import login as django_login
+from django.conf import settings
+
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import AllowAny
+
+from rest_auth.app_settings import (
+	TokenSerializer, LoginSerializer, JWTSerializer, create_token
+)
+from rest_auth.views import sensitive_post_parameters_m, LoginView
+from rest_auth.models import TokenModel
+from rest_auth.utils import jwt_encode
 
 
 class AccountCreateAPIView(APIView):
@@ -30,9 +46,6 @@ class AccountCreateAPIView(APIView):
 		if serializer.is_valid():
 			serializer.save()
 			threading.Thread(target=self._send_credentials, kwargs=data).start()
-
-			# TODO: add task which deletes account in 24 hours if it is inactive
-
 			return Response({'detail': 'account has been created'}, status=status.HTTP_201_CREATED)
 		else:
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -44,9 +57,9 @@ class AccountCreateAPIView(APIView):
 			'password': ''.join(password)
 		})
 		plain = open(
-			'{}/templates/credentials_email.txt'.format(BASE_DIR)
+			'{}/templates/credentials_email.txt'.format(settings.BASE_DIR)
 		).read().replace('{{ username }}', ''.join(username)).replace('{{ password }}', ''.join(password))
-		send_email('Registration of Event Reminder account', html, plain, [email], EMAIL_HOST_USER)
+		send_email('Registration of Event Reminder account', html, plain, [email], settings.EMAIL_HOST_USER)
 
 
 class AccountDeleteAPIView(APIView):
@@ -77,7 +90,7 @@ class SendTokenAPIView(APIView):
 			'password': account.password,
 			'nonce': nonce
 		}
-		jwt_token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+		jwt_token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
 		threading.Thread(target=self._send_confirmation, args=(
 			account.email, account.username, sha256(jwt_token).hexdigest()
@@ -87,14 +100,14 @@ class SendTokenAPIView(APIView):
 		return Response({'detail': 'confirmation email has been sent'}, status=status.HTTP_201_CREATED)
 
 	@staticmethod
-	def _send_confirmation(email, username, jwt_token, sender=EMAIL_HOST_USER):
+	def _send_confirmation(email, username, jwt_token, sender=settings.EMAIL_HOST_USER):
 		html = render_to_string('reset_password_email.html', {
 			'token': jwt_token,
-			'site': SITE,
+			'site': settings.SITE,
 			'username': username
 		})
 		plain = open(
-			'{}/templates/reset_password_email.txt'.format(BASE_DIR)
+			'{}/templates/reset_password_email.txt'.format(settings.BASE_DIR)
 		).read().replace('{{ token }}', jwt_token).replace('{{ username }}', username)
 		send_email('Reset your Event Reminder password', html, plain, [email], sender)
 
@@ -112,7 +125,7 @@ class ResetPasswordAPIView(APIView):
 		if 'confirmation_token' not in request.data:
 			return Response({'detail': 'missing confirmation token'}, status=status.HTTP_400_BAD_REQUEST)
 		nonce = request.session.get('{}_nonce'.format(account.email), '')
-		if token_is_valid(account, SECRET_KEY, nonce, request.data.get('confirmation_token', '')):
+		if token_is_valid(account, settings.SECRET_KEY, nonce, request.data.get('confirmation_token', '')):
 			new_password = request.data.get('new_password', None)
 			new_password_confirm = request.data.get('new_password_confirm', None)
 			if new_password is None or new_password_confirm is None:
@@ -161,3 +174,18 @@ class AccountEditAPIView(APIView):
 			return Response({'detail': 'account has been edited'}, status=status.HTTP_201_CREATED)
 		else:
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginAPIView(LoginView):
+
+	def post(self, request, *args, **kwargs):
+		self.request = request
+		self.serializer = self.get_serializer(data=self.request.data, context={'request': request})
+		self.serializer.is_valid(raise_exception=True)
+
+		self.login()
+
+		if self.user.is_activated is False:
+			self.user.edit(is_activated=True).save()
+
+		return self.get_response()
