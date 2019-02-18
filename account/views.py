@@ -29,7 +29,7 @@ class AccountCreateAPIView(APIView):
 		serializer = AccountSerializer(data=data)
 		if serializer.is_valid():
 			serializer.save()
-			threading.Thread(target=self._send_credentials, kwargs=data.dict()).start()
+			threading.Thread(target=self._send_credentials, kwargs=data).start()
 
 			# TODO: add task which deletes account in 24 hours if it is inactive
 
@@ -40,12 +40,12 @@ class AccountCreateAPIView(APIView):
 	@staticmethod
 	def _send_credentials(email, username, password):
 		html = render_to_string('credentials_email.html', {
-			'username': username,
-			'password': password
+			'username': ''.join(username),
+			'password': ''.join(password)
 		})
 		plain = open(
 			'{}/templates/credentials_email.txt'.format(BASE_DIR)
-		).read().replace('{{ username }}', username).replace('{{ password }}', password)
+		).read().replace('{{ username }}', ''.join(username)).replace('{{ password }}', ''.join(password))
 		send_email('Registration of Event Reminder account', html, plain, [email], EMAIL_HOST_USER)
 
 
@@ -131,3 +131,33 @@ class ResetPasswordAPIView(APIView):
 				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 		else:
 			return Response({'detail': 'confirmation token is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AccountDetailsAPIView(APIView):
+	authentication_classes = (authentication.TokenAuthentication,)
+	permission_classes = (permissions.IsAuthenticated,)
+
+	@staticmethod
+	def get(request):
+		account = Account.get_by_pk(request.user.username)
+		if account is None:
+			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
+		serializer = AccountSerializer(account)
+		return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AccountEditAPIView(APIView):
+	authentication_classes = (authentication.TokenAuthentication,)
+	permission_classes = (permissions.IsAuthenticated,)
+
+	@staticmethod
+	def post(request):
+		account = Account.get_by_pk(request.user.username)
+		if account is None:
+			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
+		serializer = AccountSerializer(instance=account, data=request.data)
+		if serializer.is_valid():
+			serializer.save()
+			return Response({'detail': 'account has been edited'}, status=status.HTTP_201_CREATED)
+		else:
+			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
