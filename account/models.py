@@ -1,4 +1,4 @@
-from django.db.models import CharField, PositiveIntegerField
+from django.db.models import CharField, PositiveIntegerField, BooleanField
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -13,6 +13,7 @@ class Account(AbstractUser):
 	max_backups = PositiveIntegerField(default=5, validators=[
 		MinValueValidator(MIN_BACKUPS_VAL), MaxValueValidator(MAX_BACKUPS_VAL)
 	])
+	is_activated = BooleanField(default=False)
 
 	@staticmethod
 	def get_by_pk(pk):
