@@ -4,36 +4,21 @@ import threading
 from hashlib import sha256
 
 from rest_framework import (
-	status,
 	permissions,
 	authentication
 )
 from django.template.loader import render_to_string
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-
 from account.models import Account
-from account.serializers import AccountSerializer
+from account.serializers import AccountSerializer, AccountDetailsSerializer
 from account.util import gen_password, token_is_valid, send_email
 
-# from EventReminderCloud.settings import SECRET_KEY, BASE_DIR, EMAIL_HOST_USER, SITE
-
-from django.contrib.auth import login as django_login
 from django.conf import settings
 
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import AllowAny
-
-from rest_auth.app_settings import (
-	TokenSerializer, LoginSerializer, JWTSerializer, create_token
-)
-from rest_auth.views import sensitive_post_parameters_m, LoginView
-from rest_auth.models import TokenModel
-from rest_auth.utils import jwt_encode
+from rest_auth.views import LoginView
 
 
 class AccountCreateAPIView(APIView):
@@ -103,7 +88,6 @@ class SendTokenAPIView(APIView):
 	def _send_confirmation(email, username, jwt_token, sender=settings.EMAIL_HOST_USER):
 		html = render_to_string('reset_password_email.html', {
 			'token': jwt_token,
-			'site': settings.SITE,
 			'username': username
 		})
 		plain = open(
@@ -155,7 +139,7 @@ class AccountDetailsAPIView(APIView):
 		account = Account.get_by_pk(request.user.username)
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
-		serializer = AccountSerializer(account)
+		serializer = AccountDetailsSerializer(account)
 		return Response(serializer.data, status=status.HTTP_200_OK)
 
 

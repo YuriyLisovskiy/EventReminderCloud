@@ -49,3 +49,10 @@ class AccountSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Account
 		fields = ('username', 'email', 'password', 'lang', 'max_backups')
+
+
+class AccountDetailsSerializer(serializers.ModelSerializer):
+
+	class Meta:
+		model = Account
+		fields = ('username', 'email', 'lang', 'max_backups')

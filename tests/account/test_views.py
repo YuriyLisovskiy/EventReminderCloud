@@ -102,6 +102,8 @@ class ResetPasswordAPIViewTestCase(TestCase):
 		self.assertEqual(response.status_code, 201)
 		self.assertTrue('detail' in response.json())
 
+		self.assertEqual(len(mail.outbox), 1)
+
 		token = re.search(r'token:\s*\n\s*([a-z0-9]{64})', str(mail.outbox[0].body)).group(1)
 
 		response = self.client.post('/api/v1/accounts/password/reset', data={
@@ -255,7 +257,6 @@ class AccountDetailsAPIViewTestCase(TestCase):
 		self.assertEqual(self.account.email, content['email'])
 		self.assertEqual(self.account.max_backups, content['max_backups'])
 		self.assertEqual(self.account.lang, content['lang'])
-		self.assertEqual(self.account.password, content['password'])
 
 	def test_get_401_unauthorized(self):
 		response = self.client.get('/api/v1/accounts/user')
