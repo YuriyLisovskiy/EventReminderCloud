@@ -3,11 +3,13 @@ import random
 import threading
 from hashlib import sha256
 
+from django.contrib.auth import logout
 from rest_framework import (
 	permissions,
 	authentication
 )
 from django.template.loader import render_to_string
+from django.core.exceptions import ObjectDoesNotExist
 
 from account.models import Account
 from account.util import gen_password, token_is_valid, send_email
@@ -123,6 +125,14 @@ class ResetPasswordAPIView(APIView):
 			if serializer.is_valid():
 				serializer.save()
 				del request.session['{}_nonce'.format(account.email)]
+
+				try:
+					request.user.auth_token.delete()
+				except (AttributeError, ObjectDoesNotExist):
+					pass
+
+				logout(request)
+
 				return Response({'detail': 'password has been changed'}, status=status.HTTP_201_CREATED)
 			else:
 				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -164,6 +174,7 @@ class LoginAPIView(LoginView):
 
 	def post(self, request, *args, **kwargs):
 		self.request = request
+
 		self.serializer = self.get_serializer(data=self.request.data, context={'request': request})
 		self.serializer.is_valid(raise_exception=True)
 
