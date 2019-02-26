@@ -1,7 +1,7 @@
-from django.db.models import CharField, PositiveIntegerField, BooleanField
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import CharField, PositiveIntegerField, BooleanField, EmailField
 
 
 class Account(AbstractUser):
@@ -9,6 +9,7 @@ class Account(AbstractUser):
 	MAX_BACKUPS_VAL = 10
 
 	username = CharField(max_length=100, primary_key=True)
+	email = EmailField(blank=False, unique=True)
 	lang = CharField(max_length=2, default='en')
 	max_backups = PositiveIntegerField(default=5, validators=[
 		MinValueValidator(MIN_BACKUPS_VAL), MaxValueValidator(MAX_BACKUPS_VAL)

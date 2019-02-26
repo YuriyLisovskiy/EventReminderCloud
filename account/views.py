@@ -10,15 +10,15 @@ from rest_framework import (
 from django.template.loader import render_to_string
 
 from account.models import Account
-from account.serializers import AccountSerializer, AccountDetailsSerializer
 from account.util import gen_password, token_is_valid, send_email
+from account.serializers import AccountSerializer, AccountDetailsSerializer
 
 from django.conf import settings
 
 from rest_framework import status
+from rest_auth.views import LoginView
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_auth.views import LoginView
 
 
 class AccountCreateAPIView(APIView):
@@ -60,10 +60,10 @@ class AccountDeleteAPIView(APIView):
 class SendTokenAPIView(APIView):
 
 	def post(self, request):
-		username = request.data.get('username')
-		if username is None:
-			return Response({'detail': 'username was not provided'}, status=status.HTTP_400_BAD_REQUEST)
-		account = Account.get_by_pk(username)
+		email = request.data.get('email')
+		if email is None:
+			return Response({'detail': 'email was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+		account = Account.objects.filter(email=email).first()
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
 		nonce = sha256(
@@ -100,10 +100,10 @@ class ResetPasswordAPIView(APIView):
 
 	@staticmethod
 	def post(request):
-		username = request.data.get('username')
-		if username is None:
-			return Response({'detail': 'username was not provided'}, status=status.HTTP_400_BAD_REQUEST)
-		account = Account.get_by_pk(username)
+		email = request.data.get('email')
+		if email is None:
+			return Response({'detail': 'email was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+		account = Account.objects.filter(email=email).first()
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
 		if 'confirmation_token' not in request.data:

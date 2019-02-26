@@ -9,6 +9,7 @@ class AccountSerializer(serializers.ModelSerializer):
 
 	password = serializers.CharField(required=False, allow_null=False, allow_blank=False)
 	username = serializers.CharField(required=False, allow_null=False, allow_blank=False)
+	email = serializers.CharField(required=False, allow_null=False, allow_blank=False)
 
 	def validate(self, data):
 		if self.instance is None:
