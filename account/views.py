@@ -3,37 +3,24 @@ import random
 import threading
 from hashlib import sha256
 
+from django.contrib.auth import logout
 from rest_framework import (
-	status,
 	permissions,
 	authentication
 )
 from django.template.loader import render_to_string
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from django.core.exceptions import ObjectDoesNotExist
 
 from account.models import Account
-from account.serializers import AccountSerializer
 from account.util import gen_password, token_is_valid, send_email
+from account.serializers import AccountSerializer, AccountDetailsSerializer
 
-# from EventReminderCloud.settings import SECRET_KEY, BASE_DIR, EMAIL_HOST_USER, SITE
-
-from django.contrib.auth import login as django_login
 from django.conf import settings
 
 from rest_framework import status
+from rest_auth.views import LoginView
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import AllowAny
-
-from rest_auth.app_settings import (
-	TokenSerializer, LoginSerializer, JWTSerializer, create_token
-)
-from rest_auth.views import sensitive_post_parameters_m, LoginView
-from rest_auth.models import TokenModel
-from rest_auth.utils import jwt_encode
 
 
 class AccountCreateAPIView(APIView):
@@ -75,10 +62,10 @@ class AccountDeleteAPIView(APIView):
 class SendTokenAPIView(APIView):
 
 	def post(self, request):
-		username = request.data.get('username')
-		if username is None:
-			return Response({'detail': 'username was not provided'}, status=status.HTTP_400_BAD_REQUEST)
-		account = Account.get_by_pk(username)
+		email = request.data.get('email')
+		if email is None:
+			return Response({'detail': 'email was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+		account = Account.objects.filter(email=email).first()
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
 		nonce = sha256(
@@ -103,7 +90,6 @@ class SendTokenAPIView(APIView):
 	def _send_confirmation(email, username, jwt_token, sender=settings.EMAIL_HOST_USER):
 		html = render_to_string('reset_password_email.html', {
 			'token': jwt_token,
-			'site': settings.SITE,
 			'username': username
 		})
 		plain = open(
@@ -116,10 +102,10 @@ class ResetPasswordAPIView(APIView):
 
 	@staticmethod
 	def post(request):
-		username = request.data.get('username')
-		if username is None:
-			return Response({'detail': 'username was not provided'}, status=status.HTTP_400_BAD_REQUEST)
-		account = Account.get_by_pk(username)
+		email = request.data.get('email')
+		if email is None:
+			return Response({'detail': 'email was not provided'}, status=status.HTTP_400_BAD_REQUEST)
+		account = Account.objects.filter(email=email).first()
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
 		if 'confirmation_token' not in request.data:
@@ -139,6 +125,14 @@ class ResetPasswordAPIView(APIView):
 			if serializer.is_valid():
 				serializer.save()
 				del request.session['{}_nonce'.format(account.email)]
+
+				try:
+					request.user.auth_token.delete()
+				except (AttributeError, ObjectDoesNotExist):
+					pass
+
+				logout(request)
+
 				return Response({'detail': 'password has been changed'}, status=status.HTTP_201_CREATED)
 			else:
 				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -155,7 +149,7 @@ class AccountDetailsAPIView(APIView):
 		account = Account.get_by_pk(request.user.username)
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
-		serializer = AccountSerializer(account)
+		serializer = AccountDetailsSerializer(account)
 		return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -180,6 +174,7 @@ class LoginAPIView(LoginView):
 
 	def post(self, request, *args, **kwargs):
 		self.request = request
+
 		self.serializer = self.get_serializer(data=self.request.data, context={'request': request})
 		self.serializer.is_valid(raise_exception=True)
 

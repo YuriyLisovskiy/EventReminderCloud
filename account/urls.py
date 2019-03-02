@@ -4,6 +4,7 @@ from account.views import (
 	AccountCreateAPIView, ResetPasswordAPIView, SendTokenAPIView, AccountDeleteAPIView, AccountEditAPIView, AccountDetailsAPIView
 )
 
+
 urlpatterns = [
 	url(r'^edit/?$', AccountEditAPIView.as_view()),
 	url(r'^user/?$', AccountDetailsAPIView.as_view()),
