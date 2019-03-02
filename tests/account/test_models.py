@@ -25,7 +25,6 @@ class AccountTestCase(TestCase):
 			'email': 'test_1@gmail.com',
 			'password': 'test_password_1',
 			'max_backups': 8,
-			'lang': 'ua'
 		})
 		actual_account.save()
 		expected_account = Account.objects.get(pk='test_username_1')
@@ -33,7 +32,6 @@ class AccountTestCase(TestCase):
 		self.assertEqual(actual_account.email, expected_account.email)
 		self.assertEqual(actual_account.password, expected_account.password)
 		self.assertEqual(actual_account.max_backups, expected_account.max_backups)
-		self.assertEqual(actual_account.lang, expected_account.lang)
 
 	def test_create_failed_incorrect_username(self):
 		account = Account.create(**{
@@ -80,14 +78,12 @@ class AccountTestCase(TestCase):
 	def test_edit(self):
 		self.account.edit(**{
 			'password': 'new_password',
-			'lang': 'ua',
 			'max_backups': 3
 		})
 		self.account.save()
 		actual = Account.objects.get(pk='test_username')
 		self.assertEqual(self.account.password, actual.password)
 		self.assertEqual(self.account.max_backups, actual.max_backups)
-		self.assertEqual(self.account.lang, actual.lang)
 
 	def test_remove_exists(self):
 		self.assertIsNotNone(Account.remove('test_username'))

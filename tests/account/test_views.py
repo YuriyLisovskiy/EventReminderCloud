@@ -211,25 +211,20 @@ class AccountEditAPIViewTestCase(TestCase):
 
 	def test_post_201_created(self):
 		account = Account.get_by_pk('test_user')
-		self.assertEqual(account.lang, 'en')
 		self.assertEqual(account.max_backups, 5)
 		response = self.client.post('/api/v1/accounts/edit', data={
 			'max_backups': 7,
-			'lang': 'ua'
 		}, **self.header)
 		self.assertEqual(response.status_code, 201)
 		self.assertTrue('detail' in response.json())
 		account = Account.get_by_pk('test_user')
 		self.assertEqual(account.max_backups, 7)
-		self.assertEqual(account.lang, 'ua')
 
 	def test_post_400_max_backups_is_non_number(self):
 		account = Account.get_by_pk('test_user')
-		self.assertEqual(account.lang, 'en')
 		self.assertEqual(account.max_backups, 5)
 		response = self.client.post('/api/v1/accounts/edit', data={
 			'max_backups': 'f',
-			'lang': 'ua'
 		}, **self.header)
 		self.assertEqual(response.status_code, 400)
 
@@ -256,7 +251,6 @@ class AccountDetailsAPIViewTestCase(TestCase):
 		self.assertEqual(self.account.username, content['username'])
 		self.assertEqual(self.account.email, content['email'])
 		self.assertEqual(self.account.max_backups, content['max_backups'])
-		self.assertEqual(self.account.lang, content['lang'])
 
 	def test_get_401_unauthorized(self):
 		response = self.client.get('/api/v1/accounts/user')

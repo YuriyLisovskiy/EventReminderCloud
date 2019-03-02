@@ -41,7 +41,6 @@ class AccountSerializer(serializers.ModelSerializer):
 	def update(self, instance, validated_data):
 		instance = instance.edit(**{
 			'password': validated_data.get('password', None),
-			'lang': validated_data.get('lang', None),
 			'max_backups': validated_data.get('max_backups', None)
 		})
 		instance.save()
@@ -49,11 +48,11 @@ class AccountSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Account
-		fields = ('username', 'email', 'password', 'lang', 'max_backups')
+		fields = ('username', 'email', 'password', 'max_backups')
 
 
 class AccountDetailsSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Account
-		fields = ('username', 'email', 'lang', 'max_backups')
+		fields = ('username', 'email', 'max_backups')

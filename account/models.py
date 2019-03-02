@@ -10,7 +10,6 @@ class Account(AbstractUser):
 
 	username = CharField(max_length=100, primary_key=True)
 	email = EmailField(blank=False, unique=True)
-	lang = CharField(max_length=2, default='en')
 	max_backups = PositiveIntegerField(default=5, validators=[
 		MinValueValidator(MIN_BACKUPS_VAL), MaxValueValidator(MAX_BACKUPS_VAL)
 	])
@@ -25,25 +24,21 @@ class Account(AbstractUser):
 			return None
 
 	@staticmethod
-	def create(username, email, password, lang=None, max_backups=None):
+	def create(username, email, password, max_backups=None):
 		if username is None or username == '' or email is None or email == '' or password is None or password == '':
 			return None
 		account = Account()
 		account.username = username
 		account.email = email
 		account.set_password(password)
-		if lang is not None:
-			account.lang = lang
 		if max_backups is not None:
 			if Account.MIN_BACKUPS_VAL <= max_backups <= Account.MAX_BACKUPS_VAL:
 				account.max_backups = max_backups
 		return account
 
-	def edit(self, password=None, lang=None, max_backups=None, is_activated=None):
+	def edit(self, password=None, max_backups=None, is_activated=None):
 		if password is not None:
 			self.set_password(raw_password=password)
-		if lang is not None:
-			self.lang = lang
 		if max_backups is not None:
 			if self.MIN_BACKUPS_VAL <= max_backups <= self.MAX_BACKUPS_VAL:
 				self.max_backups = max_backups
