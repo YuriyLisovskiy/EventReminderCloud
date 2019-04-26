@@ -1,7 +1,8 @@
 from django.conf.urls import url
 
 from account.views import (
-	AccountCreateAPIView, ResetPasswordAPIView, SendTokenAPIView, AccountDeleteAPIView, AccountEditAPIView, AccountDetailsAPIView
+	AccountCreateAPIView, ResetPasswordAPIView, SendVerificationCodeAPIView,
+	AccountDeleteAPIView, AccountEditAPIView, AccountDetailsAPIView
 )
 
 
@@ -10,6 +11,6 @@ urlpatterns = [
 	url(r'^user/?$', AccountDetailsAPIView.as_view()),
 	url(r'^create/?$', AccountCreateAPIView.as_view()),
 	url(r'^delete/?$', AccountDeleteAPIView.as_view()),
-	url(r'^send/token/?$', SendTokenAPIView.as_view()),
+	url(r'^send/verification/code/?$', SendVerificationCodeAPIView.as_view()),
 	url(r'^password/reset/?$', ResetPasswordAPIView.as_view()),
 ]

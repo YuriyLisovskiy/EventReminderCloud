@@ -1,7 +1,4 @@
-import jwt
-import random
 import threading
-from hashlib import sha256
 
 from django.contrib.auth import logout
 from rest_framework import (
@@ -12,7 +9,7 @@ from django.template.loader import render_to_string
 from django.core.exceptions import ObjectDoesNotExist
 
 from account.models import Account
-from account.util import gen_password, token_is_valid, send_email
+from account.util import send_email, get_verification_code, gen_password
 from account.serializers import AccountSerializer, AccountDetailsSerializer
 
 from django.conf import settings
@@ -26,9 +23,8 @@ from rest_framework.response import Response
 class AccountCreateAPIView(APIView):
 
 	def post(self, request):
-		password = gen_password()
 		data = request.data.copy()
-		data['password'] = password
+		data['password'] = gen_password(len_to=10)
 		serializer = AccountSerializer(data=data)
 		if serializer.is_valid():
 			serializer.save()
@@ -59,7 +55,7 @@ class AccountDeleteAPIView(APIView):
 		return Response({'detail': 'account hash been deleted'}, status=status.HTTP_201_CREATED)
 
 
-class SendTokenAPIView(APIView):
+class SendVerificationCodeAPIView(APIView):
 
 	def post(self, request):
 		email = request.data.get('email')
@@ -68,33 +64,22 @@ class SendTokenAPIView(APIView):
 		account = Account.objects.filter(email=email).first()
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
-		nonce = sha256(
-			''.join([account.password, str(random.randrange(-999999, 999999))]).encode()
-		).hexdigest()
-		payload = {
-			'email': account.email,
-			'username': account.username,
-			'password': account.password,
-			'nonce': nonce
-		}
-		jwt_token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
-		threading.Thread(target=self._send_confirmation, args=(
-			account.email, account.username, sha256(jwt_token).hexdigest()
-		)).start()
+		v_code = get_verification_code(code_cast_func=int)
+		threading.Thread(target=self._send_confirmation, args=(account.email, account.username, v_code)).start()
+		request.session['{}_verification_code'.format(account.email)] = v_code
 
-		request.session['{}_nonce'.format(account.email)] = nonce
 		return Response({'detail': 'confirmation email has been sent'}, status=status.HTTP_201_CREATED)
 
 	@staticmethod
-	def _send_confirmation(email, username, jwt_token, sender=settings.EMAIL_HOST_USER):
+	def _send_confirmation(email, username, v_code, sender=settings.EMAIL_HOST_USER):
 		html = render_to_string('reset_password_email.html', {
-			'token': jwt_token,
+			'v_code': v_code,
 			'username': username
 		})
 		plain = open(
 			'{}/templates/reset_password_email.txt'.format(settings.BASE_DIR)
-		).read().replace('{{ token }}', jwt_token).replace('{{ username }}', username)
+		).read().replace('{{ v_code }}', str(v_code)).replace('{{ username }}', username)
 		send_email('Reset your Event Reminder password', html, plain, [email], sender)
 
 
@@ -108,10 +93,14 @@ class ResetPasswordAPIView(APIView):
 		account = Account.objects.filter(email=email).first()
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
-		if 'confirmation_token' not in request.data:
-			return Response({'detail': 'missing confirmation token'}, status=status.HTTP_400_BAD_REQUEST)
-		nonce = request.session.get('{}_nonce'.format(account.email), '')
-		if token_is_valid(account, settings.SECRET_KEY, nonce, request.data.get('confirmation_token', '')):
+		if 'verification_code' not in request.data:
+			return Response({'detail': 'missing verification code'}, status=status.HTTP_400_BAD_REQUEST)
+		v_code = request.session.get('{}_verification_code'.format(account.email), None)
+
+		# TODO: session does not contain verification code!
+		print(str(request.data.get('verification_code', '0')), str(v_code))
+
+		if str(request.data.get('verification_code', '0')) == str(v_code):
 			new_password = request.data.get('new_password', None)
 			new_password_confirm = request.data.get('new_password_confirm', None)
 			if new_password is None or new_password_confirm is None:
@@ -124,7 +113,7 @@ class ResetPasswordAPIView(APIView):
 			serializer = AccountSerializer(instance=account, data=data)
 			if serializer.is_valid():
 				serializer.save()
-				del request.session['{}_nonce'.format(account.email)]
+				del request.session['{}_verification_code'.format(account.email)]
 
 				try:
 					request.user.auth_token.delete()
@@ -137,7 +126,7 @@ class ResetPasswordAPIView(APIView):
 			else:
 				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 		else:
-			return Response({'detail': 'confirmation token is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({'detail': 'verification code is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AccountDetailsAPIView(APIView):
