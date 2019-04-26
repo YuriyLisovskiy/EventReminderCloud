@@ -1,6 +1,6 @@
 ## Event Reminder Cloud
 
-##### [Event Reminder](https://github.com/YuriyLisovskiy/EventReminder) cloud service for online application synchronization.
+##### [Event Reminder](https://github.com/YuriyLisovskiy/EventReminder) cloud service for storing application's backups.
 
 To start with this project, run the following:
 
