@@ -1,3 +1,4 @@
+import jwt
 import threading
 
 from django.contrib.auth import logout
@@ -7,6 +8,7 @@ from rest_framework import (
 )
 from django.template.loader import render_to_string
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.sessions.backends.db import SessionStore
 
 from account.models import Account
 from account.util import send_email, get_verification_code, gen_password
@@ -65,9 +67,15 @@ class SendVerificationCodeAPIView(APIView):
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
 
-		v_code = get_verification_code(code_cast_func=int)
+		v_code = get_verification_code(code_cast_func=str)
+
+		s = SessionStore()
+		s['v_code'] = v_code
+		s.save()
+		account.session_key = s.session_key
+		account.save()
+
 		threading.Thread(target=self._send_confirmation, args=(account.email, account.username, v_code)).start()
-		request.session['{}_verification_code'.format(account.email)] = v_code
 
 		return Response({'detail': 'confirmation email has been sent'}, status=status.HTTP_201_CREATED)
 
@@ -95,12 +103,10 @@ class ResetPasswordAPIView(APIView):
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
 		if 'verification_code' not in request.data:
 			return Response({'detail': 'missing verification code'}, status=status.HTTP_400_BAD_REQUEST)
-		v_code = request.session.get('{}_verification_code'.format(account.email), None)
 
-		# TODO: session does not contain verification code!
-		print(str(request.data.get('verification_code', '0')), str(v_code))
+		session = SessionStore(session_key=account.session_key)
 
-		if str(request.data.get('verification_code', '0')) == str(v_code):
+		if request.data.get('verification_code', '-1') == session['v_code']:
 			new_password = request.data.get('new_password', None)
 			new_password_confirm = request.data.get('new_password_confirm', None)
 			if new_password is None or new_password_confirm is None:
@@ -113,7 +119,9 @@ class ResetPasswordAPIView(APIView):
 			serializer = AccountSerializer(instance=account, data=data)
 			if serializer.is_valid():
 				serializer.save()
-				del request.session['{}_verification_code'.format(account.email)]
+				session.delete()
+				account.session_key = None
+				account.save()
 
 				try:
 					request.user.auth_token.delete()

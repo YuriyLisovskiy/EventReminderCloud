@@ -14,6 +14,7 @@ class Account(AbstractUser):
 		MinValueValidator(MIN_BACKUPS_VAL), MaxValueValidator(MAX_BACKUPS_VAL)
 	])
 	is_activated = BooleanField(default=False)
+	session_key = CharField(max_length=40, null=True)
 
 	@staticmethod
 	def get_by_pk(pk):

@@ -104,13 +104,13 @@ class ResetPasswordAPIViewTestCase(TestCase):
 
 		self.assertEqual(len(mail.outbox), 1)
 
-		token = re.search(r'code:\s*([0-9]{6})', str(mail.outbox[0].body)).group(1)
+		verification_code = re.search(r'code:\s*([0-9]{6})', str(mail.outbox[0].body)).group(1)
 
 		response = self.client.post('/api/v1/accounts/password/reset', data={
 			'email': 'test.user@gmail.com',
 			'new_password': 'new_test_password',
 			'new_password_confirm': 'new_test_password',
-			'confirmation_token': token
+			'verification_code': verification_code
 		})
 		self.assertEqual(response.status_code, 201)
 		self.assertTrue('detail' in response.json())
@@ -149,12 +149,14 @@ class ResetPasswordAPIViewTestCase(TestCase):
 		self.assertEqual(response.status_code, 201)
 		self.assertTrue('detail' in response.json())
 
-		token = re.search(r'code:\s*([a-z0-9]{6})', str(mail.outbox[0].body)).group(1)
+		self.assertEqual(len(mail.outbox), 1)
+
+		verification_code = re.search(r'code:\s*([0-9]{6})', str(mail.outbox[0].body)).group(1)
 
 		response = self.client.post('/api/v1/accounts/password/reset', data={
 			'email': 'test.user@gmail.com',
 			'new_password_confirm': 'new_test_password',
-			'confirmation_token': token
+			'verification_code': verification_code
 		})
 		self.assertEqual(response.status_code, 400)
 		self.assertTrue('detail' in response.json())
@@ -165,6 +167,8 @@ class ResetPasswordAPIViewTestCase(TestCase):
 		})
 		self.assertEqual(response.status_code, 201)
 		self.assertTrue('detail' in response.json())
+
+		self.assertEqual(len(mail.outbox), 1)
 
 		token = re.search(r'code:\s*([0-9]{6})', str(mail.outbox[0].body)).group(1)
 
@@ -182,6 +186,8 @@ class ResetPasswordAPIViewTestCase(TestCase):
 		})
 		self.assertEqual(response.status_code, 201)
 		self.assertTrue('detail' in response.json())
+
+		self.assertEqual(len(mail.outbox), 1)
 
 		token = re.search(r'code:\s*([0-9]{6})', str(mail.outbox[0].body)).group(1)
 

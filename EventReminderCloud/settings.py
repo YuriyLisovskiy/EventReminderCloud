@@ -49,6 +49,8 @@ REST_FRAMEWORK = {
 	)
 }
 
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 AUTH_USER_MODEL = 'account.Account'
 
 ROOT_URLCONF = 'EventReminderCloud.urls'
