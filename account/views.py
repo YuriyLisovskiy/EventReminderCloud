@@ -100,12 +100,12 @@ class ResetPasswordAPIView(APIView):
 		account = Account.objects.filter(email=email).first()
 		if account is None:
 			return Response({'detail': 'account is not found'}, status=status.HTTP_404_NOT_FOUND)
-		if 'verification_code' not in request.data:
+		if 'confirmation_code' not in request.data:
 			return Response({'detail': 'missing verification code'}, status=status.HTTP_400_BAD_REQUEST)
 
 		session = SessionStore(session_key=account.session_key)
 
-		if request.data.get('verification_code', '-1') == session['v_code']:
+		if request.data.get('confirmation_code', '-1') == session['v_code']:
 			new_password = request.data.get('new_password', None)
 			new_password_confirm = request.data.get('new_password_confirm', None)
 			if new_password is None or new_password_confirm is None:

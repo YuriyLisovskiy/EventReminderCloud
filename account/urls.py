@@ -11,6 +11,6 @@ urlpatterns = [
 	url(r'^user/?$', AccountDetailsAPIView.as_view()),
 	url(r'^create/?$', AccountCreateAPIView.as_view()),
 	url(r'^delete/?$', AccountDeleteAPIView.as_view()),
-	url(r'^send/verification/code/?$', SendVerificationCodeAPIView.as_view()),
+	url(r'^send/confirmation/code/?$', SendVerificationCodeAPIView.as_view()),
 	url(r'^password/reset/?$', ResetPasswordAPIView.as_view()),
 ]
