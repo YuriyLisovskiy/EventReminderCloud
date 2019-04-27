@@ -1,4 +1,3 @@
-import jwt
 import threading
 
 from django.contrib.auth import logout
@@ -168,6 +167,7 @@ class AccountEditAPIView(APIView):
 
 
 class LoginAPIView(LoginView):
+	permission_classes = (permissions.AllowAny,)
 
 	def post(self, request, *args, **kwargs):
 		self.request = request
