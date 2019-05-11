@@ -8,6 +8,9 @@ class BackupSerializer(serializers.ModelSerializer):
 	digest = serializers.CharField(max_length=128, required=True, allow_blank=False, allow_null=False)
 	timestamp = serializers.DateTimeField(format='%Y-%m-%d %H:%M:%S', required=True, allow_null=False)
 	backup = serializers.CharField(required=True, allow_blank=False, allow_null=False)
+	backup_size = serializers.CharField(required=True, allow_null=False, allow_blank=False)
+	events_count = serializers.IntegerField(required=True, allow_null=False)
+	contains_settings = serializers.BooleanField(required=True, allow_null=False)
 
 	def validate(self, data):
 		digest = data.get('digest')
@@ -29,4 +32,4 @@ class BackupListSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Backup
-		fields = ('digest', 'timestamp')
+		fields = ('digest', 'timestamp', 'backup_size', 'events_amount', 'contains_settings')
