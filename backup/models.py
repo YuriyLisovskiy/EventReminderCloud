@@ -10,7 +10,7 @@ class Backup(models.Model):
 	digest = models.CharField(max_length=128, primary_key=True, editable=False)
 	timestamp = models.DateTimeField(auto_now=True, editable=False)
 	backup = models.TextField(blank=False, null=False, editable=False)
-	events_amount = models.IntegerField(default=0, blank=False, editable=False)
+	events_count = models.IntegerField(default=0, blank=False, editable=False)
 	backup_size = models.CharField(max_length=100, default='0 bytes', blank=False, editable=False)
 	contains_settings = models.BooleanField(default=False, blank=False, editable=False)
 
